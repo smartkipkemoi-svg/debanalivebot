@@ -13,7 +13,7 @@ def get_summary(league,eid):
     try:
         url=f"https://site.api.espn.com/apis/site/v2/sports/soccer/{league}/summary?event={eid}"
         r=requests.get(url,timeout=15)
-        return r.json()
+        
     except:
         return {}
 def run():
