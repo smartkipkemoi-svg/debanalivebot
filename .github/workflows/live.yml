@@ -11,8 +11,12 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - run: pip install requests pillow
-      - run: python bot.py
+      - name: Install deps
+        run: |
+          pip install requests
+          pip install pillow
+      - name: Run bot
+        run: python bot.py
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_TOKEN: ${{ secrets.FB_TOKEN }}
