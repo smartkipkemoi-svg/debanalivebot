@@ -1,75 +1,31 @@
 name: Live Bot
-
 on:
   schedule:
-    - cron: '*/5 * * * *'  # GitHub minimum = every 5 mins
-  workflow_dispatch:        # Manual run button
-
-# Prevent 2 bots running at same time (caused your 403)
-concurrency:
-  group: live-bot
-  cancel-in-progress: false
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 jobs:
   live:
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # Kills after 5 mins, so next run can start
-    
+    timeout-minutes: 5
     steps:
-      - name: 1. Checkout code
-        uses: actions/checkout@v4
-
-      - name: 2. Restore posted history (prevents duplicate goals)
-        uses: actions/cache/restore@v4
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: posted.json
-          key: posted-history-v3
-          restore-keys: |
-            posted-history-
-
-      - name: 3. Create posted.json if first time
-        run: |
-          if [ ! -f posted.json ]; then
-            echo "[]" > posted.json
-            echo "Created new posted.json"
-          else
-            echo "Found existing posted.json with $(cat posted.json | wc -c) bytes"
-          fi
-
-      - name: 4. Setup Python
-        uses: actions/setup-python@v5
+          key: posted-history
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
-
-      - name: 5. Install requests
-        run: pip install requests
-
-      - name: 6. Check Secrets exist
-        run: |
-          if [ -z "${{ secrets.FB_PAGE_ID }}" ]; then echo "ERROR: FB_PAGE_ID secret missing!" && exit 1; fi
-          if [ -z "${{ secrets.FB_TOKEN }}" ]; then echo "ERROR: FB_TOKEN secret missing!" && exit 1; fi
-          echo "Secrets OK - FB_PAGE_ID and FB_TOKEN found"
-
-      - name: 7. Run Bot - Live checks every 10 seconds for 4.5 minutes
+      - run: pip install requests
+      - name: Run Bot
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_TOKEN: ${{ secrets.FB_TOKEN }}
           FB_PAGE_TOKEN: ${{ secrets.FB_TOKEN }}
-          PYTHONUNBUFFERED: "1"
         run: python bot.py
-
-      - name: 8. Save posted history
-        uses: actions/cache/save@v4
+      - uses: actions/cache/save@v4
         if: always()
         with:
           path: posted.json
-          key: posted-history-v3
-
-      - name: 9. Show logs
-        if: always()
-        run: |
-          echo "=== POSTED.JSON ==="
-          cat posted.json | tail -c 500
-          echo ""
-          echo "=== END ==="
+          key: posted-history
