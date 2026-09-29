@@ -1,22 +1,30 @@
 name: De Bana Live Bot
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
+      
+      - name: Restore posted memory
+        uses: actions/cache@v3
+        with:
+          path: |
+            posted.json
+            state.json
+          key: football-memory-${{ github.run_number }}
+          restore-keys: |
+            football-memory-
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - name: Install deps
-        run: |
-          pip install requests
-          pip install pillow
+      - run: pip install requests
       - name: Run bot
-        run: python bot.py
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
-          FB_TOKEN: ${{ secrets.FB_TOKEN }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+        run: python bot.py
