@@ -1,18 +1,15 @@
 import requests, json, os, time, concurrent.futures, random, collections
 from datetime import datetime, timezone
 import pytz
-
 FB_PAGE_ID = os.environ.get('FB_PAGE_ID')
 FB_TOKEN = os.environ.get('FB_TOKEN')
 POSTED_FILE = "posted.json"
 SLEEP_LIVE_KPL = 5
 SLEEP_LIVE = 10
 SLEEP_QUIET = 120
-
 POST_QUEUE = collections.deque()
 LAST_POST_TIME = 0
 MIN_POST_GAP = 90
-
 LEAGUES = [
     "eng.1","eng.2","eng.fa","eng.league_cup",
     "esp.1","esp.2","esp.copa_del_rey",
@@ -23,7 +20,6 @@ LEAGUES = [
     "fifa.world","fifa.world.u20","fifa.friendly","uefa.euro","concacaf.gold","afc.asian",
     "nga.1","tza.1","ng.1","tz.1","uga.1","rwa.1"
 ]
-
 def to_bold(text):
     def _c(ch):
         if 'A' <= ch <= 'Z':
@@ -34,14 +30,12 @@ def to_bold(text):
             return chr(0x1D7EC + ord(ch) - 48)
         return ch
     return "".join(_c(c) for c in text)
-
 LEAGUE_FLAGS = {
     "eng.1": "EPL", "eng.2": "EPL", "eng.fa": "FA Cup", "eng.league_cup": "EFL Cup",
     "esp.1": "LaLiga", "esp.2": "LaLiga2", "ger.1": "Bundesliga", "ita.1": "Serie A", "fra.1": "Ligue 1",
     "ken.1": "KPL", "rsa.1": "PSL", "egy.1": "EGY", "nga.1": "NPFL", "tza.1": "NBC PL", "ng.1": "NPFL", "tz.1": "NBC", "uga.1": "UPL", "rwa.1": "RPL",
     "uefa.champions": "UCL", "uefa.europa": "UEL", "uefa.europa_conference": "UECL", "caf.champions": "CAF"
 }
-
 BRAND = "\U0001f3af"
 END = "\U0001f51a"
 CLOCK = "\u23f0"
@@ -65,7 +59,6 @@ GEAR = "\U00002699\ufe0f"
 STAR = "\U00002b50"
 AMB = "\U0001f691"
 CHART = "\U0001f4ca"
-
 CONTROVERSY = [
     "VAR: Hii ilikuwa penalty? YES or NO? \U0001f447 Debate!",
     "GOAT debate: Messi vs Ronaldo - nani true GOAT? \U0001f525 Comment!",
@@ -75,10 +68,8 @@ CONTROVERSY = [
     "KPL vs EPL - ligi gani tamu zaidi? Debate!",
     "Man Utd itarudi top 4? YES/NO? \U0001f605"
 ]
-
 def check_giveaway_day():
     return datetime.now().weekday() == 4
-
 def get_lineup_extra(comp):
     try:
         lineups = comp.get('lineups', []) or comp.get('lineup', [])
@@ -113,7 +104,6 @@ def get_lineup_extra(comp):
         return extra
     except:
         return ""
-
 def get_eat_time(iso_str):
     try:
         dt = datetime.fromisoformat(iso_str.replace("Z","+00:00"))
@@ -125,7 +115,6 @@ def get_eat_time(iso_str):
             return str((dt.hour+3)%24) + ":00 EAT"
         except:
             return iso_str
-
 def get_match_photo(lg, gid, is_kpl=False):
     try:
         url = "https://site.api.espn.com/apis/site/v2/sports/soccer/" + lg + "/summary?event=" + gid
@@ -139,7 +128,6 @@ def get_match_photo(lg, gid, is_kpl=False):
     except Exception as e:
         print("photo err " + str(e))
         return None
-
 def get_match_stats(comp):
     try:
         stats = comp.get('statistics',[]) or comp.get('stats',[])
@@ -155,13 +143,11 @@ def get_match_stats(comp):
         return ""
     except:
         return ""
-
 SHENG_STARTS = ["Gooool!", "Wamefunga!", "Wamepasua net!", "Moto!", "Chuma!", "Hatari!", "Bazuu!", "Woi!"]
 SHENG_MIDS = ["wamechapa", "wamefunga", "wameweka ndani", "wameingiza", "amewasha", "amepasua", "amechoma"]
 SHENG_ENDS = ["mambo imechemka", "hii game ni moto", "wameamua leo", "hakuna mchezo", "form ni kali", "wamezima", "KPL ni yetu!"]
 EMOJIS = [FIRE, SOCCER, "\U0001f4a5", "\U0001f680", "\U0001f4a8", "\U0001f631", ZAP]
 SHENG_EXTRAS = ["KPL ni yetu!", "Hii ndio yetu!", "Ligi yetu tamu!", "Tuko ndani!", "Bana wamezima!"]
-
 def kpl_sheng_caption(team, home, away, minute, player="", flag="KPL"):
     s = random.choice(SHENG_STARTS)
     m = random.choice(SHENG_MIDS)
@@ -180,7 +166,6 @@ def kpl_sheng_caption(team, home, away, minute, player="", flag="KPL"):
     t2 = BRAND + " " + flag + " | " + emoji + " Dakika " + bold_min + "' - " + bold_team + " " + m + " goli! " + bold_score + " " + player_txt + "\n" + e + " - " + extra + "\n\n" + CHAT + " Code yako iko aje? Drop kwa comment tuku-trackie!\n#DeBana"
     t3 = BRAND + " " + flag + " | " + bold_team + " " + m + "! " + s + " " + bold_score + " min " + str(minute) + "' " + emoji + "\n" + player + " " + e + "\n\n" + FIRE + " " + extra + " | Track bet yako na De Bana!\n#FKFPL"
     return random.choice([t1, t2, t3])
-
 def load_posted():
     try:
         if os.path.exists(POSTED_FILE):
@@ -190,7 +175,6 @@ def load_posted():
     except Exception as e:
         print("load error " + str(e))
     return []
-
 def save_posted(p):
     if len(p)>2000:
         p=p[-2000:]
@@ -202,57 +186,3 @@ def save_posted(p):
         print("SAVED " + str(len(p)))
     except Exception as e:
         print("save error " + str(e))
-
-def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
-    global LAST_POST_TIME
-    now = time.time()
-    if now - LAST_POST_TIME < MIN_POST_GAP:
-        wait = MIN_POST_GAP - (now - LAST_POST_TIME)
-        print("RATE LIMIT: waiting " + str(int(wait)) + "s")
-        time.sleep(wait)
-    if not FB_PAGE_ID or not FB_TOKEN:
-        print("NO TOKEN: " + msg[:80])
-        return False
-    if not is_kpl and random.random() < 0.3:
-        time.sleep(random.randint(15,25))
-    photo_url = None
-    if gid and lg:
-        try:
-            photo_url = get_match_photo(lg, gid, is_kpl)
-        except:
-            photo_url = None
-        if not is_kpl and photo_url and random.random() < 0.6:
-            photo_url = None
-    try:
-        for attempt in range(3):
-            try:
-                if photo_url:
-                    r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/photos",
-                                    data={"caption":msg, "url":photo_url, "access_token":FB_TOKEN}, timeout=20)
-                else:
-                    logo_url = None
-                    if teams and len(teams)>=2:
-                        logo_url = teams[0]['team'].get('logo') or teams[1]['team'].get('logo')
-                    if logo_url and random.random() < 0.7:
-                        r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/photos",
-                                        data={"caption":msg, "url":logo_url, "access_token":FB_TOKEN}, timeout=20)
-                    else:
-                        r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/feed",
-                                        data={"message":msg,"access_token":FB_TOKEN}, timeout=15)
-                print("FB " + str(r.status_code) + " attempt " + str(attempt) + ": " + msg[:70])
-                if r.status_code==200:
-                    LAST_POST_TIME = time.time()
-                    try:
-                        post_id = r.json().get('id') or r.json().get('post_id')
-                        if post_id:
-                            comment_msg = POINT + " Follow De Bana for fastest goals! " + ZAP + " Turn ON notifications " + BELL + " | Drop your bet code " + DOWN + " tunatrack live!"
-                            if is_kpl:
-                                comment_msg = POINT + " Follow De Bana! Fastest KPL updates hapa! " + BELL + " Weka bet code yako hapa tuku-trackie! #DeBana"
-                            requests.post("https://graph.facebook.com/" + post_id + "/comments",
-                                data={"message":comment_msg,"access_token":FB_TOKEN}, timeout=10)
-                    except Exception as e:
-                        print("comment err " + str(e))
-                    return True
-                elif r.status_code == 429:
-                    print("FB RATE LIMITED - sleeping 5 min")
-                    time.sleep(300
