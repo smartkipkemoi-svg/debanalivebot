@@ -2,7 +2,7 @@ name: De Bana Live
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # every 5 minutes
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -34,12 +34,12 @@ jobs:
         run: |
           if [ ! -f posted.json ]; then echo "[]" > posted.json; fi
 
-      - name: Run bot NON-STOP 5m 40s
+      - name: Run bot
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_TOKEN: ${{ secrets.FB_TOKEN }}
         run: |
-          timeout 340 python main.py || true
+          timeout 340 python bot.py || true
 
       - name: Save posted.json
         run: |
