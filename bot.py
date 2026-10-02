@@ -91,35 +91,4 @@ while True:
     try:
         games=[]
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
-            for res in ex.map(fetch_league, LEAGUES):
-                games.extend(res)
-
-        live_now=False
-        for ev in games:
-            gid=ev.get('id')
-            state=ev.get('status',{}).get('type',{}).get('state','')
-            comp=ev.get('competitions',[{}])[0]
-            teams=comp.get('competitors',[])
-            if len(teams)<2: continue
-            home=teams[0]['team']['displayName']
-            away=teams[1]['team']['displayName']
-            hs=teams[0].get('score','0')
-            as_=teams[1].get('score','0')
-            lg=ev.get('_lg','')
-
-            # FT - post once then block
-            if state=='post':
-                pid=f"{gid}_FT_{hs}-{as_}"
-                if pid not in posted:
-                    msg=f"🔚 FULL TIME: {home} {hs}-{as_} {away}\n\nWhat a game! Thoughts? 👇\n#FT #{lg} #DeBana"
-                    if post_fb(msg):
-                        posted.append(pid); save_posted(posted)
-                continue
-
-            if state=='in': live_now=True
-
-            # LINEUP
-            if state=='pre' and comp.get('lineups'):
-                pid=f"{gid}_LINEUP"
-                if pid not in posted:
-                    msg=f"📋 LINEUP DROP
+            for res in ex.map
