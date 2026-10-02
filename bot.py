@@ -1,132 +1,131 @@
-import requests, json, os, time, random
-from datetime import datetime
+import requests, json, os, time, random, concurrent.futures
 
 FB_PAGE_ID = os.environ.get('FB_PAGE_ID')
-FB_TOKEN = os.environ.get('FB_TOKEN') or os.environ.get('FB_PAGE_TOKEN')
+FB_TOKEN = os.environ.get('FB_TOKEN')
 POSTED_FILE = "posted.json"
-RUN_TIME = 270
-SLEEP_TIME = 10
+SLEEP_LIVE = 35
+SLEEP_QUIET = 120
 
-LEAGUES = ["eng.1","esp.1","ger.1","ita.1","fra.1","uefa.champions","uefa.europa","fifa.worldq","usa.1","mex.1","bra.1"]
+LEAGUES = [
+    "eng.1","eng.2","eng.fa","eng.league_cup",
+    "esp.1","esp.2","esp.copa_del_rey",
+    "ger.1","ita.1","fra.1","ned.1","por.1","bel.1","tur.1","sco.1","gre.1","sui.1",
+    "uefa.champions","uefa.europa","uefa.europa_conference","uefa.super_cup","uefa.nations",
+    "usa.1","mex.1","bra.1","arg.1","conmebol.libertadores","conmebol.sudamericana",
+    "ken.1","rsa.1","egy.1","nga.1","mar.1","caf.champions","caf.confed","caf.nations",
+    "fifa.world","fifa.world.u20","fifa.friendly","uefa.euro","concacaf.gold","afc.asian"
+]
 
-FUNNY_GOAL = [
-    "BOOM! {player} just broke the net!",
-    "GOALAZO! {player} with a banger!",
-    "OMG! {player} made keeper look silly!",
-    "ROCKET! {player} scores!",
-    "UNBELIEVABLE! {player} cooks!"
+MEMES = [
+    "When you said you'll sleep early but UCL is at 10PM 😂\nWho else is still awake?",
+    "KPL defender seeing Gor Mahia counter attack 🏃‍♂️💨\nPray for him!",
+    "Man Utd fans: 'Next season is ours' - Every season since 2013 😅",
+    "That friend who says football is boring 🙄\nWe don't talk to him.",
+    "VAR in KPL = Vibes And Random decisions 🤣",
+    "When you bet Under 2.5 and it's 2-2 at 90' 😭💔",
 ]
 
 def load_posted():
-    if not os.path.exists(POSTED_FILE): return []
     try:
-        with open(POSTED_FILE,'r') as f:
-            d=json.load(f)
-            return d if isinstance(d,list) else []
-    except: return []
+        if os.path.exists(POSTED_FILE):
+            with open(POSTED_FILE,'r') as f:
+                data=json.load(f)
+                return data if isinstance(data,list) else []
+    except Exception as e:
+        print(f"load error {e}")
+    return []
 
 def save_posted(p):
-    if len(p)>800: p=p[-800:]
-    with open(POSTED_FILE,'w') as f: json.dump(p,f)
+    if len(p)>1500: p=p[-1500:]
+    try:
+        with open(POSTED_FILE,'w') as f:
+            json.dump(p,f)
+        print(f"SAVED {len(p)}")
+    except Exception as e:
+        print(f"save error {e}")
 
 def post_fb(msg):
     if not FB_PAGE_ID or not FB_TOKEN:
-        print(f"NO SECRET - {msg[:100]}")
+        print(f"NO TOKEN: {msg[:80]}")
         return False
     try:
-        r=requests.post(f"https://graph.facebook.com/{FB_PAGE_ID}/feed", data={"message":msg,"access_token":FB_TOKEN}, timeout=15)
-        print(f"FB {r.status_code} {r.text[:200]}")
+        r=requests.post(f"https://graph.facebook.com/{FB_PAGE_ID}/feed",
+                        data={"message":msg,"access_token":FB_TOKEN}, timeout=15)
+        print(f"FB {r.status_code}: {msg[:80]}")
         return r.status_code==200
     except Exception as e:
         print(f"FB ERR {e}")
         return False
 
-def get_games():
-    games=[]
-    for league in LEAGUES:
-        try:
-            url=f"https://site.api.espn.com/apis/site/v2/sports/soccer/{league}/scoreboard"
-            r=requests.get(url, headers={"User-Agent":"Mozilla/5.0"}, timeout=8)
-            if r.status_code!=200: continue
-            for ev in r.json().get('events',[]):
-                if ev.get('status',{}).get('type',{}).get('state','') in ['in','pre','post']:
-                    ev['_league']=league
-                    games.append(ev)
-        except: continue
-    return games
-
-def get_teams(comp):
+def fetch_league(lg):
     try:
-        h=[c for c in comp['competitors'] if c['homeAway']=='home'][0]
-        a=[c for c in comp['competitors'] if c['homeAway']=='away'][0]
-        return h,a
+        url=f"https://site.api.espn.com/apis/site/v2/sports/soccer/{lg}/scoreboard"
+        r=requests.get(url, timeout=10)
+        if r.status_code!=200: return []
+        out=[]
+        for ev in r.json().get('events',[]):
+            ev['_lg']=lg
+            out.append(ev)
+        return out
     except:
-        return comp['competitors'][0], comp['competitors'][1] if len(comp['competitors'])>1 else comp['competitors'][0]
+        return []
 
-print(f"START - {RUN_TIME}s run")
+def fetch_news():
+    news=[]
+    for lg in ["eng.1","esp.1","ken.1","uefa.champions"]:
+        try:
+            url=f"https://site.api.espn.com/apis/site/v2/sports/soccer/{lg}/news"
+            r=requests.get(url, timeout=10)
+            if r.status_code==200:
+                for a in r.json().get('articles',[])[:2]:
+                    news.append(a)
+        except: pass
+    return news
+
 posted=load_posted()
-start=time.time()
-checks=0
+last_news=0
+last_meme=0
+print(f"De Bana BOT STARTED - {len(posted)} posted - {len(LEAGUES)} leagues")
 
-while time.time()-start < RUN_TIME:
-    checks+=1
-    print(f"CHECK {checks} {datetime.now().strftime('%H:%M:%S')}")
+while True:
     try:
-        games=get_games()
-        print(f"{len(games)} games found")
+        games=[]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
+            for res in ex.map(fetch_league, LEAGUES):
+                games.extend(res)
+
+        live_now=False
         for ev in games:
-            gid=ev.get('id','')
+            gid=ev.get('id')
+            state=ev.get('status',{}).get('type',{}).get('state','')
             comp=ev.get('competitions',[{}])[0]
-            if not comp: continue
-            home,away=get_teams(comp)
-            league=comp.get('competition',{}).get('name',ev.get('_league','Football'))
-            state=comp.get('status',{}).get('type',{}).get('state','')
-            detail=comp.get('status',{}).get('type',{}).get('detail','').lower()
-            h_name=home['team']['displayName']
-            a_name=away['team']['displayName']
-            hs=home.get('score','0')
-            aws=away.get('score','0')
+            teams=comp.get('competitors',[])
+            if len(teams)<2: continue
+            home=teams[0]['team']['displayName']
+            away=teams[1]['team']['displayName']
+            hs=teams[0].get('score','0')
+            as_=teams[1].get('score','0')
+            lg=ev.get('_lg','')
 
-            for d in comp.get('details',[]):
-                if not isinstance(d,dict): continue
-                txt=d.get('text','').lower()
-                is_goal='goal' in str(d.get('type','')).lower() or 'goal' in txt or d.get('scoringPlay',False)
-                is_red='red card' in txt
-                if not (is_goal or is_red): continue
-                pid=f"{gid}_{d.get('id','')}_{hs}-{aws}_{d.get('text','')[:20]}"
-                if pid in posted: continue
-                player=d.get('athletesInvolved',[{}])[0].get('displayName','') if d.get('athletesInvolved') else "GOAL"
-                if not player: player="GOAL"
-                if is_goal:
-                    template=random.choice(FUNNY_GOAL).format(player=player)
-                    msg=f"{template}\n\n{h_name} {hs} - {aws} {a_name}\nLeague: {league}\n\n#LiveScore #Goal"
-                else:
-                    msg=f"RED CARD! {player} sent off!\n\n{h_name} {hs} - {aws} {a_name}\n{league}"
-                print(f"NEW EVENT {pid}")
-                if post_fb(msg):
-                    posted.append(pid)
-                    save_posted(posted)
-                    time.sleep(2)
-
-            if 'halftime' in detail:
-                pid=f"{gid}_HT_{hs}-{aws}"
+            # FT - post once then block
+            if state=='post':
+                pid=f"{gid}_FT_{hs}-{as_}"
                 if pid not in posted:
-                    msg=f"HALFTIME\n\n{h_name} {hs} - {aws} {a_name}\n{league}\n\n#HT"
+                    msg=f"🔚 FULL TIME: {home} {hs}-{as_} {away}\n\nWhat a game! Thoughts? 👇\n#FT #{lg} #DeBana"
                     if post_fb(msg):
-                        posted.append(pid)
-                        save_posted(posted)
+                        posted.append(pid); save_posted(posted)
+                continue
 
-            if state=='post' and 'final' in detail:
-                pid=f"{gid}_FT_{hs}-{aws}"
+            if state=='in': live_now=True
+
+            # LINEUP
+            if state=='pre' and comp.get('lineups'):
+                pid=f"{gid}_LINEUP"
                 if pid not in posted:
-                    msg=f"FULL TIME\n\n{h_name} {hs} - {aws} {a_name}\n{league}\n\n#FT #Result"
+                    msg=f"📋 LINEUP DROP: {home} vs {away}\n\nStarting XIs are out! Who wins? 👀\n#Lineup #BuildUp #DeBana"
                     if post_fb(msg):
-                        posted.append(pid)
-                        save_posted(posted)
-    except Exception as e:
-        print(f"LOOP ERR {e}")
+                        posted.append(pid); save_posted(posted)
 
-    time.sleep(SLEEP_TIME)
-    if time.time()-start >= RUN_TIME: break
-
-print(f"DONE {checks} checks total")
+            # LIVE EVENTS
+            if state=='in':
+                for det in comp.get('details',[]):
