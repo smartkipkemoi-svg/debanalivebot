@@ -140,7 +140,8 @@ def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
         return False
     except Exception as e:
         print("FB ERR " + str(e))
-        return Falsedef fetch_league(lg):
+        return False
+def fetch_league(lg):
     try:
         for _ in range(2):
             try:
