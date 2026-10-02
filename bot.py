@@ -132,9 +132,20 @@ while True:
                         continue
                     minute=det.get('clock',{}).get('displayValue','')
                     player=det.get('athletesInvolved',[{}])[0].get('displayName','') if det.get('athletesInvolved') else ''
-                    pid=f"{gid}_GOAL_{minute}_{player}_{hs}-{as_}"
+                    # FIXED: Use score from the goal event itself, not current game score
+                    score_val = det.get('scoreValue','') # e.g. "0-1"
+                    if score_val and '-' in score_val:
+                        goal_score = score_val
+                    else:
+                        # fallback to detail's own scores if available
+                        h = det.get('homeScore') or det.get('home_score') or hs
+                        a = det.get('awayScore') or det.get('away_score') or as_
+                        goal_score = f"{h}-{a}"
+                    # FIXED: pid by unique event id, not minute/player/score (prevents VAR duplicate 16" -> 22")
+                    det_id = det.get('id') or f"{minute}_{player}"
+                    pid=f"{gid}_GOAL_{det_id}"
                     if pid not in posted:
-                        msg=f"⚽ GOAL ALERT {minute}' : {home} {hs}-{as_} {away} - {player} #DeBanaLive"
+                        msg=f"⚽ GOAL ALERT {minute}' : {home} {goal_score} {away} - {player} #DeBanaLive"
                         if post_fb(msg):
                             posted.append(pid); save_posted(posted)
 
