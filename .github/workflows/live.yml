@@ -1,31 +1,34 @@
-name: Live Bot
-on:
-  schedule:
-    - cron: '*/5 * * * *'
-  workflow_dispatch:
+name: de-bana-football
+language: python
+version: "3.11"
 
-jobs:
-  live:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
-        with:
-          path: posted.json
-          key: posted-history
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - run: pip install requests
-      - name: Run Bot
-        env:
-          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
-          FB_TOKEN: ${{ secrets.FB_TOKEN }}
-          FB_PAGE_TOKEN: ${{ secrets.FB_TOKEN }}
-        run: python bot.py
-      - uses: actions/cache/save@v4
-        if: always()
-        with:
-          path: posted.json
-          key: posted-history
+install:
+    - pip install --upgrade pip
+    - pip install requests
+
+# change main.py if your file name is different
+run: python main.py
+
+# keep it alive 24/7
+daemon: true
+
+# restart every 4.5 hours to stay fresh
+restart:
+  after: 270m
+  on_failure: true
+  delay: 30s
+
+# IMPORTANT: only 1 bot at a time - stops double posts
+concurrency: 1
+
+# THIS FIXES YOUR DUPLICATE - keeps posted.json after restart
+keep_files:
+    - posted.json
+
+# logs
+logs:
+  max_size: 10mb
+  keep: 2
+
+# bot.by will use 256MB - enough for 20 threads
+memory: 256
