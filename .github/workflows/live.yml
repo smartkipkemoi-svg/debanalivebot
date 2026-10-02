@@ -2,52 +2,39 @@ name: De Bana Live
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # runs every 15 mins
-  workflow_dispatch:  # allow manual run
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 jobs:
   live:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install deps
+      - name: Install
         run: pip install requests
 
-      - name: Restore posted.json
-        uses: actions/cache@v4
-        with:
-          path: posted.json
-          key: posted-${{ hashFiles('posted.json') }}
-          restore-keys: posted-
-
-      - name: Create posted.json if not exists
+      - name: Init posted.json
         run: |
-          if [ ! -f posted.json ]; then
-            echo "[]" > posted.json
-          fi
+          if [ ! -f posted.json ]; then echo "[]" > posted.json; fi
 
-      - name: Run De Bana Bot (5 mins)
+      - name: Run bot
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_TOKEN: ${{ secrets.FB_TOKEN }}
         run: |
-          timeout 280 python main.py || true
-          # change main.py to bot.py if your file is bot.py
+          timeout 270 python main.py || true
 
       - name: Save posted.json
         run: |
           git config user.name "De Bana Bot"
           git config user.email "bot@debana.com"
           git add posted.json || true
-          git diff --staged --quiet || git commit -m "update posted.json [skip ci]"
+          git diff --staged --quiet || git commit -m "save posted [skip ci]"
           git push || true
