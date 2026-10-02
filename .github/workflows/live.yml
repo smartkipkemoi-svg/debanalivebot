@@ -1,34 +1,53 @@
-name: de-bana-football
-language: python
-version: "3.11"
+name: De Bana Live
 
-install:
-    - pip install --upgrade pip
-    - pip install requests
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # runs every 15 mins
+  workflow_dispatch:  # allow manual run
 
-# change main.py if your file name is different
-run: python main.py
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-# keep it alive 24/7
-daemon: true
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-# restart every 4.5 hours to stay fresh
-restart:
-  after: 270m
-  on_failure: true
-  delay: 30s
+      - name: Install deps
+        run: pip install requests
 
-# IMPORTANT: only 1 bot at a time - stops double posts
-concurrency: 1
+      - name: Restore posted.json
+        uses: actions/cache@v4
+        with:
+          path: posted.json
+          key: posted-${{ hashFiles('posted.json') }}
+          restore-keys: posted-
 
-# THIS FIXES YOUR DUPLICATE - keeps posted.json after restart
-keep_files:
-    - posted.json
+      - name: Create posted.json if not exists
+        run: |
+          if [ ! -f posted.json ]; then
+            echo "[]" > posted.json
+          fi
 
-# logs
-logs:
-  max_size: 10mb
-  keep: 2
+      - name: Run De Bana Bot (5 mins)
+        env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_TOKEN: ${{ secrets.FB_TOKEN }}
+        run: |
+          timeout 280 python main.py || true
+          # change main.py to bot.py if your file is bot.py
 
-# bot.by will use 256MB - enough for 20 threads
-memory: 256
+      - name: Save posted.json
+        run: |
+          git config user.name "De Bana Bot"
+          git config user.email "bot@debana.com"
+          git add posted.json || true
+          git diff --staged --quiet || git commit -m "update posted.json [skip ci]"
+          git push || true
