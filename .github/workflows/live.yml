@@ -2,8 +2,15 @@ name: De Bana Live
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'  # every 5 minutes
   workflow_dispatch:
+
+concurrency:
+  group: de-bana-live
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   live:
@@ -11,7 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Pull latest
+        run: git pull --rebase || true
 
       - uses: actions/setup-python@v5
         with:
@@ -24,17 +34,17 @@ jobs:
         run: |
           if [ ! -f posted.json ]; then echo "[]" > posted.json; fi
 
-      - name: Run bot
+      - name: Run bot NON-STOP 5m 40s
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           FB_TOKEN: ${{ secrets.FB_TOKEN }}
         run: |
-          timeout 270 python main.py || true
+          timeout 340 python main.py || true
 
       - name: Save posted.json
         run: |
           git config user.name "De Bana Bot"
           git config user.email "bot@debana.com"
-          git add posted.json || true
-          git diff --staged --quiet || git commit -m "save posted [skip ci]"
+          git add posted.json
+          git diff --staged --quiet || git commit -m "save [skip ci]"
           git push || true
