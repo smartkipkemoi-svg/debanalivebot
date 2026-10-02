@@ -91,4 +91,71 @@ while True:
     try:
         games=[]
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
-            for res in ex.map
+            for res in ex.map(fetch_league, LEAGUES):
+                games.extend(res)
+
+        live_now=False
+        for ev in games:
+            gid=ev.get('id')
+            state=ev.get('status',{}).get('type',{}).get('state','')
+            comp=ev.get('competitions',[{}])[0]
+            teams=comp.get('competitors',[])
+            if len(teams)<2: continue
+            home=teams[0]['team']['displayName']
+            away=teams[1]['team']['displayName']
+            hs=teams[0].get('score','0')
+            as_=teams[1].get('score','0')
+            lg=ev.get('_lg','')
+
+            if state=='post':
+                pid=f"{gid}_FT_{hs}-{as_}"
+                if pid not in posted:
+                    msg=f"🔚 FULL TIME: {home} {hs}-{as_} {away}\n\nWhat a game! Thoughts? 👇\n#FT #{lg} #DeBana"
+                    if post_fb(msg):
+                        posted.append(pid); save_posted(posted)
+                continue
+
+            if state=='in': live_now=True
+
+            if state=='pre' and comp.get('lineups'):
+                pid=f"{gid}_LINEUP"
+                if pid not in posted:
+                    msg=f"📋 LINEUP DROP: {home} vs {away}\n\nStarting XIs are out! Who wins? 👀\n#Lineup #BuildUp #DeBana"
+                    if post_fb(msg):
+                        posted.append(pid); save_posted(posted)
+
+            if state=='in':
+                for det in comp.get('details',[]):
+                    if not isinstance(det, dict):
+                        continue
+                    if 'goal' not in str(det.get('type','')).lower():
+                        continue
+                    minute=det.get('clock',{}).get('displayValue','')
+                    player=det.get('athletesInvolved',[{}])[0].get('displayName','') if det.get('athletesInvolved') else ''
+                    pid=f"{gid}_GOAL_{minute}_{player}_{hs}-{as_}"
+                    if pid not in posted:
+                        msg=f"⚽ GOAL ALERT {minute}' : {home} {hs}-{as_} {away} - {player} #DeBanaLive"
+                        if post_fb(msg):
+                            posted.append(pid); save_posted(posted)
+
+        if time.time()-last_news>1800:
+            for art in fetch_news()[:1]:
+                pid=f"NEWS_{art.get('id','')}"
+                if pid not in posted:
+                    if post_fb(f"📰 {art.get('headline','')} #DeBana"):
+                        posted.append(pid); save_posted(posted)
+                        last_news=time.time()
+                        break
+
+        if time.time()-last_meme>3600:
+            pid=f"MEME_{int(time.time()/3600)}"
+            if pid not in posted:
+                if post_fb(random.choice(MEMES)):
+                    posted.append(pid); save_posted(posted)
+                    last_meme=time.time()
+
+        time.sleep(SLEEP_LIVE if live_now else SLEEP_QUIET)
+
+    except Exception as e:
+        print(f"LOOP ERR {e}")
+        time.sleep(20)
