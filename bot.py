@@ -26,9 +26,15 @@ LEAGUES = [
 ]
 
 def to_bold(text):
-    normal = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    bold = "𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵"
-    return text.translate(str.maketrans(normal, bold))
+    def _c(ch):
+        if 'A' <= ch <= 'Z':
+            return chr(0x1D5D4 + ord(ch) - 65)
+        if 'a' <= ch <= 'z':
+            return chr(0x1D5EE + ord(ch) - 97)
+        if '0' <= ch <= '9':
+            return chr(0x1D7EC + ord(ch) - 48)
+        return ch
+    return "".join(_c(c) for c in text)
 
 LEAGUE_FLAGS = {
     "eng.1": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 EPL", "eng.2": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "eng.fa": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 FA", "eng.league_cup": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
@@ -103,13 +109,11 @@ def get_match_photo(lg, gid, is_kpl=False):
     except Exception as e:
         print(f"photo err {e}"); return None
 
-# === ADDED: CRASH-PROOF - GET STATS FOR FT ===
 def get_match_stats(comp):
     try:
         stats = comp.get('statistics',[]) or comp.get('stats',[])
         out = ""
         for st in stats[:2]:
-            # ESPN stats format varies
             s = st.get('stats',[]) if isinstance(st, dict) else []
             for item in s:
                 name = item.get('name','').lower()
@@ -146,26 +150,23 @@ def load_posted():
     except Exception as e: print(f"load error {e}")
     return []
 
-# === ADDED: CRASH-PROOF SAVE - NO CORRUPT ===
 def save_posted(p):
-    if len(p)>2000: p=p[-2000:] # ADDED: bigger but trimmed
+    if len(p)>2000: p=p[-2000:]
     try:
         tmp = POSTED_FILE + ".tmp"
         with open(tmp,'w') as f:
             json.dump(p,f)
-        os.replace(tmp, POSTED_FILE) # atomic - never corrupt
+        os.replace(tmp, POSTED_FILE)
         print(f"SAVED {len(p)}")
     except Exception as e: print(f"save error {e}")
 
 def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
     global LAST_POST_TIME
-    # === ADDED: RATE LIMIT QUEUE ===
     now = time.time()
     if now - LAST_POST_TIME < MIN_POST_GAP:
         wait = MIN_POST_GAP - (now - LAST_POST_TIME)
         print(f"RATE LIMIT: waiting {int(wait)}s")
         time.sleep(wait)
-
     if not FB_PAGE_ID or not FB_TOKEN:
         print(f"NO TOKEN: {msg[:80]}"); return False
     if not is_kpl and random.random() < 0.3:
@@ -176,7 +177,6 @@ def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
         except: photo_url = None
         if not is_kpl and photo_url and random.random() < 0.6: photo_url = None
     try:
-        # ADDED: retry 3 times if fail - crash-proof
         for attempt in range(3):
             try:
                 if photo_url:
@@ -204,7 +204,7 @@ def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
                                 data={"message":comment_msg,"access_token":FB_TOKEN}, timeout=10)
                     except Exception as e: print(f"comment err {e}")
                     return True
-                elif r.status_code == 429: # rate limited
+                elif r.status_code == 429:
                     print("FB RATE LIMITED - sleeping 5 min")
                     time.sleep(300)
                     continue
@@ -218,11 +218,10 @@ def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
 
 def fetch_league(lg):
     try:
-        # ADDED: retry + timeout crash-proof
         for _ in range(2):
             try:
                 url=f"https://site.api.espn.com/apis/site/v2/sports/soccer/{lg}/scoreboard"
-                r=requests.get(url, timeout=15) # increased timeout
+                r=requests.get(url, timeout=15)
                 if r.status_code!=200: return []
                 out=[]
                 for ev in r.json().get('events',[]):
@@ -254,7 +253,6 @@ while True:
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:
             for res in ex.map(fetch_league, LEAGUES):
                 games.extend(res)
-
         live_now=False
         kpl_live=False
         for ev in games:
@@ -268,24 +266,20 @@ while True:
             lg=ev.get('_lg','')
             is_kpl = lg in ["ken.1","KE.1"] or "kenya" in lg.lower()
             flag = LEAGUE_FLAGS.get(lg, f"#{lg}")
-
             if state=='post':
                 pid=f"{gid}_FT_{hs}-{as_}"
                 if pid not in posted:
-                    stats_extra = get_match_stats(comp) # ADDED
+                    stats_extra = get_match_stats(comp)
                     if is_kpl:
-                        # ADDED: FULL SHENG FT
                         msg=f"{BRAND} {flag} | 🔚 {to_bold('FT hapa KPL!')} {to_bold(home)} {to_bold(f'{hs}-{as_}')} {to_bold(away)}. {random.choice(SHENG_ENDS)}! {random.choice(SHENG_EXTRAS)} 🔥{stats_extra}\n\nCode yako iliingia? Drop comment 👇 Wamebaki na point ngapi?\n#FT #FKFPL #DeBana"
                     else:
                         msg=f"{BRAND} {flag} | 🔚 {to_bold('FULL TIME:')} {to_bold(home)} {to_bold(f'{hs}-{as_}')} {to_bold(away)}{stats_extra}\n\nWhat a game! Thoughts? 👇 Who was MOTM?\n#FT #{lg} #DeBana"
                     if post_fb(msg, is_kpl, lg, gid, teams):
                         posted.append(pid); save_posted(posted)
                 continue
-
             if state=='in':
                 live_now=True
                 if is_kpl: kpl_live=True
-
             if state=='pre':
                 try:
                     from dateutil import parser
@@ -299,7 +293,6 @@ while True:
                             msg=f"{BRAND} {flag} | ⏰ {to_bold('COMING UP')} - {to_bold(home)} vs {to_bold(away)} | {eat_str}\n\nH2H? Form? Nani atashinda? Drop prediction 👇\nOdds? Bet code? Tukutrack!\n#Preview #DeBana"
                             if post_fb(msg, is_kpl, lg, gid, teams):
                                 posted.append(pid); save_posted(posted)
-                    # ADDED: KPL lineup fallback if ESPN has none
                     if 5 < mins_to_kick < 35 and is_kpl:
                         pid=f"{gid}_LINEUP_FALLBACK"
                         if pid not in posted and not comp.get('lineups'):
@@ -307,7 +300,6 @@ while True:
                             if post_fb(msg, is_kpl, lg, gid, teams):
                                 posted.append(pid); save_posted(posted)
                 except: pass
-
             if state=='pre' and comp.get('lineups'):
                 pid=f"{gid}_LINEUP"
                 if pid not in posted:
@@ -315,7 +307,6 @@ while True:
                     msg=f"{BRAND} {flag} | 📋 {to_bold('LINEUP DROP:')} {to_bold(home)} vs {to_bold(away)}{extra_info}\n\nStarting XIs are out! Who wins? 👀 Predict score 👇\n#Lineup #BuildUp #DeBana"
                     if post_fb(msg, is_kpl, lg, gid, teams):
                         posted.append(pid); save_posted(posted)
-
             if state=='in':
                 status_detail = comp.get('status',{}).get('type',{}).get('detail','').lower()
                 if 'half' in status_detail:
@@ -327,7 +318,6 @@ while True:
                             msg=f"{BRAND} {flag} | ⏸️ {to_bold('HALF TIME:')} {to_bold(home)} {to_bold(f'{hs}-{as_}')} {to_bold(away)}\n\nSecond half nani atafunga? 👇 Drop prediction!\n#HT #DeBana"
                         if post_fb(msg, is_kpl, lg, gid, teams):
                             posted.append(pid); save_posted(posted)
-
                 for det in comp.get('details',[]):
                     if not isinstance(det, dict): continue
                     dtype = str(det.get('type','')).lower()
@@ -368,7 +358,6 @@ while True:
                             msg=f"{BRAND} {flag} | ⚽ {to_bold('GOAL ALERT')} {minute}' : {to_bold(home)} {to_bold(goal_score)} {to_bold(away)} - {to_bold(player)}\n\n🔥 Is this the winner? 👀 Drop your bet code in comments we track live!\n#DeBanaLive #{lg}"
                         if post_fb(msg, is_kpl, lg, gid, teams):
                             posted.append(pid); save_posted(posted)
-
         if time.time() - last_controversy > 10800:
             pid=f"CONTRO_{int(time.time()//10800)}"
             if pid not in posted:
@@ -379,7 +368,14 @@ while True:
                 if post_fb(msg, False, "", "", []):
                     posted.append(pid); save_posted(posted)
                     last_controversy = time.time()
-
         if time.time()-last_news>1800:
             for art in fetch_news()[:1]:
-             
+                pid=f"NEWS_{art.get('id','')}"
+                if pid not in posted:
+                    msg_news = f"{BRAND} 📰 {to_bold(art.get('headline',''))} #DeBana\n\nThoughts? 👇"
+                    if post_fb(msg_news, False, "", "", []):
+                        posted.append(pid); save_posted(posted)
+                        last_news=time.time()
+                        break
+        if kpl_live: time.sleep(SLEEP_LIVE_KPL)
+        elif live_now: time.sleep(
