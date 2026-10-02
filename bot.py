@@ -1,6 +1,10 @@
 import requests, json, os, time, concurrent.futures, random, collections
 from datetime import datetime, timezone
-import pytz
+try:
+    import pytz
+except ImportError:
+    pytz = None
+
 FB_PAGE_ID = os.environ.get('FB_PAGE_ID')
 FB_TOKEN = os.environ.get('FB_TOKEN')
 POSTED_FILE = "posted.json"
@@ -158,31 +162,4 @@ def kpl_sheng_caption(team, home, away, minute, player="", flag="KPL"):
     bold_score = to_bold(score_str)
     bold_team = to_bold(team)
     bold_s = to_bold(s)
-    bold_min = to_bold(str(minute))
-    player_txt = ""
-    if player:
-        player_txt = " - " + to_bold(player) + " amefanya!"
-    t1 = BRAND + " " + flag + " | " + bold_s + " " + bold_team + " " + m + " " + emoji + " " + bold_score + " (" + str(minute) + "') " + player_txt + "\n" + e + " | " + extra + "\n\n" + MOBILE + " Track code yako hapa De Bana! Weka bet code yako comment " + DOWN + "\n#DeBana #FKFPL #KPLLive"
-    t2 = BRAND + " " + flag + " | " + emoji + " Dakika " + bold_min + "' - " + bold_team + " " + m + " goli! " + bold_score + " " + player_txt + "\n" + e + " - " + extra + "\n\n" + CHAT + " Code yako iko aje? Drop kwa comment tuku-trackie!\n#DeBana"
-    t3 = BRAND + " " + flag + " | " + bold_team + " " + m + "! " + s + " " + bold_score + " min " + str(minute) + "' " + emoji + "\n" + player + " " + e + "\n\n" + FIRE + " " + extra + " | Track bet yako na De Bana!\n#FKFPL"
-    return random.choice([t1, t2, t3])
-def load_posted():
-    try:
-        if os.path.exists(POSTED_FILE):
-            with open(POSTED_FILE,'r') as f:
-                data=json.load(f)
-                return data if isinstance(data,list) else []
-    except Exception as e:
-        print("load error " + str(e))
-    return []
-def save_posted(p):
-    if len(p)>2000:
-        p=p[-2000:]
-    try:
-        tmp = POSTED_FILE + ".tmp"
-        with open(tmp,'w') as f:
-            json.dump(p,f)
-        os.replace(tmp, POSTED_FILE)
-        print("SAVED " + str(len(p)))
-    except Exception as e:
-        print("save error " + str(e))
+    bold_min
