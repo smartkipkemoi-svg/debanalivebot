@@ -122,10 +122,4 @@ while True:
             if state=='pre' and comp.get('lineups'):
                 pid=f"{gid}_LINEUP"
                 if pid not in posted:
-                    msg=f"📋 LINEUP DROP: {home} vs {away}\n\nStarting XIs are out! Who wins? 👀\n#Lineup #BuildUp #DeBana"
-                    if post_fb(msg):
-                        posted.append(pid); save_posted(posted)
-
-            # LIVE EVENTS
-            if state=='in':
-                for det in comp.get('details',[]):
+                    msg=f"📋 LINEUP DROP
