@@ -11,8 +11,8 @@ LEAGUES = [
     "esp.1","esp.2","esp.copa_del_rey",
     "ger.1","ita.1","fra.1","ned.1","por.1","bel.1","tur.1","sco.1","gre.1","sui.1",
     "uefa.champions","uefa.europa","uefa.europa_conference","uefa.super_cup","uefa.nations",
-    "usa.1","mex.1","bra.1","arg.1","conmebol.libertadores","conmebol.sudamericana",
-    "ken.1","rsa.1","egy.1","nga.1","mar.1","caf.champions","caf.confed","caf.nations",
+    "usa.1","bra.1","arg.1","conmebol.libertadores","conmebol.sudamericana",
+    "ken.1","rsa.1","egy.1","caf.champions","caf.confed","caf.nations",
     "fifa.world","fifa.world.u20","fifa.friendly","uefa.euro","concacaf.gold","afc.asian"
 ]
 
