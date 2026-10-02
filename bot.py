@@ -33,55 +33,7 @@ SOCCER = "\u26bd"
 FIRE = "\U0001f525"
 MOBILE = "\U0001f4f2"
 CHAT = "\U0001f4ac"
-DOWN = "\U0001f447"
-POINT = "\U0001f449"
-BELL = "\U0001f514"
-ZAP = "\u26a1"
-EYE = "\U0001f440"
-GIFT = "\U0001f381"
-THINK = "\U0001f914"
-NEWSP = "\U0001f4f0"
-GEAR = "\U00002699\ufe0f"
-STAR = "\U00002b50"
-AMB = "\U0001f691"
-CHART = "\U0001f4ca"
-CONTROVERSY = ["VAR: Hii ilikuwa penalty? YES or NO? \U0001f447 Debate!","GOAT debate: Messi vs Ronaldo - nani true GOAT? \U0001f525 Comment!","Ref ameuza game leo? \U0001f621 ama ni sawa?","Hii team itashinda league? Predict! \U0001f3c6","Best coach Kenya right now ni nani? \U0001f447","KPL vs EPL - ligi gani tamu zaidi? Debate!","Man Utd itarudi top 4? YES/NO? \U0001f605"]
-def check_giveaway_day(): return datetime.now().weekday() == 4
-def get_lineup_extra(comp):
-    try:
-        lineups = comp.get('lineups', []) or comp.get('lineup', [])
-        formations = []; key_players = []
-        for lu in lineups[:2]:
-            f = lu.get('formation') or lu.get('formationString') or ""
-            if f: formations.append(f)
-            athletes = lu.get('athletes') or lu.get('players') or []
-            if isinstance(athletes, list) and athletes:
-                flat = []
-                for group in athletes:
-                    if isinstance(group, dict) and 'athletes' in group: flat.extend(group.get('athletes', []))
-                    elif isinstance(group, dict) and 'displayName' in group: flat.append(group)
-                for pl in flat[:2]:
-                    name = pl.get('displayName') or pl.get('shortName') or ""
-                    if name: key_players.append(name)
-        extra = ""
-        if formations: extra = extra + "\n" + GEAR + " Formation: " + " vs ".join(formations[:2])
-        if key_players: extra = extra + "\n" + STAR + " Key: " + ", ".join(key_players[:4])
-        notes = comp.get('notes', [])
-        if notes:
-            for n in notes[:1]:
-                if 'injur' in str(n).lower(): extra = extra + "\n" + AMB + " " + n.get('headline','')[:80]
-        return extra
-    except: return ""
-def get_eat_time(iso_str):
-    try:
-        dt = datetime.fromisoformat(iso_str.replace("Z","+00:00"))
-        eat = dt.astimezone(pytz.timezone("Africa/Nairobi")) if pytz else dt
-        return eat.strftime("%I:%M %p EAT")
-    except:
-        try:
-            dt = datetime.fromisoformat(iso_str.replace("Z","+00:00"))
-            return str((dt.hour+3)%24) + ":00 EAT"
-        except: return iso_strdef get_match_photo(lg, gid, is_kpl=False):
+DOWN = "\U0001f447"def get_match_photo(lg, gid, is_kpl=False):
     try:
         url = "https://site.api.espn.com/apis/site/v2/sports/soccer/" + lg + "/summary?event=" + gid
         r = requests.get(url, timeout=10).json()
@@ -241,7 +193,7 @@ while True:
                     if post_fb(msg, is_kpl, lg, gid, teams):
                         posted.append(pid); save_posted(posted)
                 continue
-            if state=='in': live_now=True;
+            if state=='in': live_now=True
             if is_kpl and state=='in': kpl_live=True
             if state=='pre':
                 try:
