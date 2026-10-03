@@ -61,7 +61,7 @@ def get_match_stats(comp):
 SHENG_STARTS = ["Gooool!", "Wamefunga!", "Wamepasua net!", "Moto!", "Chuma!", "Hatari!", "Bazuu!", "Woi!"]
 SHENG_MIDS = ["wamechapa", "wamefunga", "wameweka ndani", "wameingiza", "amewasha", "amepasua", "amechoma"]
 SHENG_ENDS = ["mambo imechemka", "hii game ni moto", "wameamua leo", "hakuna mchezo", "form ni kali", "wamezima", "KPL ni yetu!"]
-EMOJIS = EMOJIS = ["\U0001f525", "\U000026BD", "\U0001f4a5", "\U0001f680", "\U0001f4a8", "\U0001f631", "\U000026A1"]
+EMOJIS = ["\U0001f525", "\U000026BD", "\U0001f4a5", "\U0001f680", "\U0001f4a8", "\U0001f631", "\U000026A1"]
 SHENG_EXTRAS = ["KPL ni yetu!", "Hii ndio yetu!", "Ligi yetu tamu!", "Tuko ndani!", "Bana wamezima!"]
 def kpl_sheng_caption(team, home, away, minute, player="", flag="KPL"):
     s = random.choice(SHENG_STARTS); m = random.choice(SHENG_MIDS); e = random.choice(SHENG_ENDS)
@@ -113,7 +113,7 @@ def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
                     r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/photos", data={"caption":msg, "url":photo_url, "access_token":FB_TOKEN}, timeout=20)
                 else:
                     logo_url = None
-                    if teams and len(teams)>=2: logo_url = teams[0]['team'].get('logo') or teams[1]['team'].get('logo')
+                         if teams and len(teams)>=2: logo_url = "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800"
                     if logo_url and random.random() < 0.7:
                         r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/photos", data={"caption":msg, "url":logo_url, "access_token":FB_TOKEN}, timeout=20)
                     else:
