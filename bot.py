@@ -112,14 +112,15 @@ def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
                 if photo_url:
                     r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/photos", data={"caption":msg, "url":photo_url, "access_token":FB_TOKEN}, timeout=20)
                 else:
-                    logo_url = None
-                         if teams and len(teams)>=2:
-                             logo_url = "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800"
-                    if logo_url and random.random() < 0.7:
-                        r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/photos", data={"caption":msg, "url":logo_url, "access_token":FB_TOKEN}, timeout=20)
-                    else:
-                        r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/feed", data={"message":msg,"access_token":FB_TOKEN}, timeout=15)
-                print("FB " + str(r.status_code) + " attempt " + str(attempt) + ": " + msg[:70])
+                            else:
+            logo_url = None
+            photo_url = "https://images.unsplash.com/photo-1577224682124-1320a9f0ff33?w=800"
+            if teams and len(teams)>=2:
+                logo_url = "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800"
+            if logo_url and random.random() < 0.7:
+                r=requests.post(f"https://graph.facebook.com/{PAGE_ID}/photos", data={"message": message, "url": logo_url, "access_token": PAGE_TOKEN}, timeout=30)
+            else:
+                r=requests.post(f"https://graph.facebook.com/{PAGE_ID}/photos", data={"message": message, "url": photo_url, "access_token": PAGE_TOKEN}, timeout=30)
                 if r.status_code==200:
                     LAST_POST_TIME = time.time()
                     try:
