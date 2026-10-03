@@ -113,7 +113,8 @@ def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
                     r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/photos", data={"caption":msg, "url":photo_url, "access_token":FB_TOKEN}, timeout=20)
                 else:
                     logo_url = None
-                         if teams and len(teams)>=2: logo_url = "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800"
+                         if teams and len(teams)>=2:
+                             logo_url = "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800"
                     if logo_url and random.random() < 0.7:
                         r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/photos", data={"caption":msg, "url":logo_url, "access_token":FB_TOKEN}, timeout=20)
                     else:
