@@ -46,16 +46,29 @@ THINK = "🤔"
 NEWSP = "📰"
 CONTROVERSY = ["Who is the GOAT? Messi vs Ronaldo - Debate!", "VAR - Good or Bad for football?", "Best KPL team ever?", "Should KPL have VAR?"]
 
-def get_match_photo(lg, gid, is_kpl=False):
-    # REAL FIELD PHOTO ONLY - from actual game
+def get_match_photo(lg, gid, is_kpl=False, home="", away=""):
     try:
         url = "https://site.api.espn.com/apis/site/v2/sports/soccer/" + lg + "/summary?event=" + gid
         r = requests.get(url, timeout=10).json()
         articles = r.get('news',{}).get('articles',[]) or r.get('headlines',[])
+        home_low = home.lower() if home else ""
+        away_low = away.lower() if away else ""
+        home_first = home.split()[0].lower() if home else ""
+        away_first = away.split()[0].lower() if away else ""
         for art in articles[:3]:
             imgs = art.get('images',[])
-            if imgs and imgs[0].get('url'):
-                return imgs[0]['url']
+            if not imgs or not imgs[0].get('url'):
+                continue
+            headline = (art.get('headline','') + " " + art.get('description','')).lower()
+            if home_low and away_low:
+                if not (home_low in headline or away_low in headline or home_first in headline or away_first in headline):
+                    print(f"REJECTED WRONG PHOTO: {headline[:80]}!= {home} vs {away}")
+                    continue
+            else:
+                if lg in ["fifa.world.u20","ken.1","tza.1","uga.1","rwa.1","nga.1","caf.champions"]:
+                    return None
+            print(f"VALID REAL PHOTO: {headline[:80]}")
+            return imgs[0]['url']
         return None
     except Exception as e:
         print("photo err " + str(e))
@@ -124,16 +137,21 @@ def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
         return False
     if not is_kpl and random.random() < 0.3: time.sleep(random.randint(15,25))
 
-    # REAL PHOTO ONLY - NO FAKE UNSPLASH, NO FLAG EVER
     photo_url = None
     if gid and lg:
         try:
-            real = get_match_photo(lg, gid, is_kpl)
+            home_name = ""
+            away_name = ""
+            if teams and len(teams)>=2:
+                try:
+                    home_name = teams[0]['team']['displayName']
+                    away_name = teams[1]['team']['displayName']
+                except: pass
+            real = get_match_photo(lg, gid, is_kpl, home_name, away_name)
             if real:
                 photo_url = real
-                print(f"REAL PHOTO FOUND: {photo_url[:120]}")
             else:
-                print("No real photo for this game - TEXT ONLY")
+                print("No real photo for this specific game -> TEXT ONLY")
         except Exception as e:
             print(f"photo fetch err {e}")
 
@@ -216,7 +234,7 @@ def check_giveaway_day():
 posted=load_posted()
 last_news=0
 last_controversy = time.time() - 10000
-print("De Bana BOT v103 FULL + REAL PHOTO ONLY - " + str(len(posted)) + " posted")
+print("De Bana BOT v104 STRICT REAL PHOTO - " + str(len(posted)) + " posted")
 while True:
     try:
         games=[]
