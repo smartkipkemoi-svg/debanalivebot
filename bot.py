@@ -112,7 +112,7 @@ def post_fb(msg, is_kpl=False, lg="", gid="", teams=[]):
                 if photo_url:
                     r=requests.post("https://graph.facebook.com/" + FB_PAGE_ID + "/photos", data={"caption":msg, "url":photo_url, "access_token":FB_TOKEN}, timeout=20)
                 else:
-                            else:
+                        
             logo_url = None
             photo_url = "https://images.unsplash.com/photo-1577224682124-1320a9f0ff33?w=800"
             if teams and len(teams)>=2:
