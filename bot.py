@@ -224,7 +224,7 @@ while True:
                     extra_info = get_lineup_extra(comp)
                     msg=BRAND + " " + flag + " | " + CLIP + " " + to_bold('LINEUP DROP:') + " " + to_bold(home) + " vs " + to_bold(away) + extra_info + "\n\nStarting XIs are out! Who wins? " + EYE + " Predict score " + DOWN + "\n#Lineup #BuildUp #DeBana"
                     if post_fb(msg, is_kpl, lg, gid, teams):
-                        posted.append(pid); save_posted(posted)            if state=='in':
+                        posted.append(pid); save_posted(posted)
                 status_detail = comp.get('status',{}).get('type',{}).get('detail','').lower()
                 if 'half' in status_detail:
                     pid=gid + "_HT_" + hs + "-" + as_
